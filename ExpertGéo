@@ -1,0 +1,147 @@
+import React, { useState, useEffect } from 'react';
+
+const PomodoroTimer = () => {
+  const [time, setTime] = useState(1500); // 25 minutes
+  const [isActive, setIsActive] = useState(false);
+  const [breakTime, setBreakTime] = useState(false);
+
+  // Function to start/pause the timer
+  const toggleTimer = () => {
+    setIsActive(!isActive);
+  };
+
+  // Reset the timer
+  const resetTimer = () => {
+    setTime(1500);
+    setIsActive(false);
+    setBreakTime(false);
+  };
+
+  // Timer countdown logic
+  useEffect(() => {
+    let interval = null;
+    if (isActive && time > 0) {
+      interval = setInterval(() => {
+        setTime(time - 1);
+      }, 1000);
+    } else if (time === 0 && !breakTime) {
+      setBreakTime(true);
+      setTime(300); // 5 minutes break
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance('Prenez une pause de 5 minutes.'));
+    } else if (time === 0 && breakTime) {
+      resetTimer();
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance('Retournez au travail !'));
+    }
+    return () => clearInterval(interval);
+  }, [isActive, time, breakTime]);
+
+  // Format the time for display
+  const formatTime = (time) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = time % 60;
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  };
+
+  return (
+    <div>
+      <h1>Pomodoro Timer</h1>
+      <div>{formatTime(time)}</div>
+      <button onClick={toggleTimer}>{isActive ? 'Pause' : 'Démarrer'}</button>
+      <button onClick={resetTimer}>Réinitialiser</button>
+    </div>
+  );
+};
+
+export default PomodoroTimer;
+
+useEffect(() => {
+  const checkMealReminders = () => {
+    const now = new Date();
+    const currentTime = `${now.getHours()}:${now.getMinutes()}`;
+
+    if (currentTime === '8:30') {
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance('N’oubliez pas de prendre votre petit déjeuner.'));
+    }
+
+    if (currentTime === '13:00') {
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance('C’est l’heure de déjeuner.'));
+    }
+  };
+
+  const interval = setInterval(checkMealReminders, 60000); // Check every minute
+  return () => clearInterval(interval);
+}, []);
+
+const weeklyTasks = {
+  Monday: ['Task 1', 'Task 2'],
+  // Add other days
+};
+
+useEffect(() => {
+  const today = new Date().toLocaleString('en-us', { weekday: 'long' });
+  if (today === 'Monday') {
+    const tasks = weeklyTasks['Monday'].join(', ');
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance(`Voici votre programme pour la semaine: ${tasks}`));
+  }
+}, []);
+
+const handleVoiceSearch = () => {
+  const recognition = new window.webkitSpeechRecognition();
+  recognition.lang = 'fr-FR';
+
+  recognition.onresult = (event) => {
+    const query = event.results[0][0].transcript;
+    // Call the search API (e.g., Google Custom Search API)
+    performSearch(query);
+  };
+
+  recognition.start();
+};
+
+const performSearch = (query) => {
+  fetch(`https://api.searchengine.com/search?q=${query}`)
+    .then(response => response.json())
+    .then(data => {
+      const results = data.results;
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance(`Voici les résultats pour ${query}`));
+      console.log(results); // Display results
+    });
+};
+
+const [tasks, setTasks] = useState([]);
+
+const addTask = (newTask) => {
+  setTasks([...tasks, newTask]);
+};
+
+return (
+  <div>
+    <h2>Tâches du jour</h2>
+    <ul>
+      {tasks.map((task, index) => (
+        <li key={index}>{task}</li>
+      ))}
+    </ul>
+    <input type="text" onChange={(e) => setNewTask(e.target.value)} />
+    <button onClick={() => addTask(newTask)}>Ajouter une tâche</button>
+  </div>
+);
+
+const handleCommand = () => {
+  const recognition = new window.webkitSpeechRecognition();
+  recognition.lang = 'fr-FR';
+
+  recognition.onresult = (event) => {
+    const command = event.results[0][0].transcript;
+    if (command.includes("timer")) {
+      // Open the timer component
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance("Ouverture du minuteur"));
+    } else if (command.includes("agenda")) {
+      // Open the agenda component
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance("Ouverture de l'agenda"));
+    }
+  };
+
+  recognition.start();
+};
+
